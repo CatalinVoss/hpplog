@@ -1,5 +1,5 @@
 ### hpp_log: Universal C++ logging helper
-This is just a simple universal logging helper for cross-platform C++ applications that have to run in various environments.
+This is just a simple universal logging helper for cross-platform C++ applications that have to run in various environments. Plays nicely with Windows, Linux, Mac, iOS, and Android NDK environments.
 
 It defines 4 log levels. Usage:
 
