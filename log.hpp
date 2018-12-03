@@ -1,5 +1,5 @@
 //
-//  Adapted from http://stackoverflow.com/questions/6168107/how-to-implement-a-good-debug-logging-feature-in-a-project
+//  Adapted from http://stackoverflow.com/questions/6168107
 //  Created by Catalin Voss on 7/14/14.
 //
 
