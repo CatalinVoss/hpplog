@@ -1,6 +1,9 @@
 //
-//  Adapted from http://stackoverflow.com/questions/6168107
+//  Open source universal logging tool (from https://github.com/CatalinVoss/hpplog/)
 //  Created by Catalin Voss on 7/14/14.
+// 
+//  Usage:
+//      logd << "Some debug log message as if this was cout." << std::endl;
 //
 
 #ifndef __LOG1_H__
@@ -12,18 +15,20 @@
 #include <stdio.h>
 
 // Helpers
-#define loge Log().Get(LOG_ERROR)
-#define logw Log().Get(LOG_WARN)
-#define logi Log().Get(LOG_INFO)
-#define logd Log().Get(LOG_DEBUG)
-#define Debug if(LOG_DEBUG <= Log().ReportingLevel())
+#define loge SELog().Get(LOG_ERROR)
+#define logw SELog().Get(LOG_WARN)
+#define logi SELog().Get(LOG_INFO)
+#define logd SELog().Get(LOG_DEBUG)
 
 // Android
-#ifdef ANDROID_NDK
+#ifdef ANDROID
 #include <jni.h>
 #include <android/log.h>
 #define LOG_TAG "NativeModule"
-#define LOGD_ANDROID(...) ((void)__android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__))
+#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+#define  LOGW(...)  __android_log_print(ANDROID_LOG_WARN,LOG_TAG,__VA_ARGS__)
+#define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG,__VA_ARGS__)
+#define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 #endif
 
 using namespace std;
@@ -32,10 +37,10 @@ inline string NowTime();
 
 enum SELogLevel {LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG};
 
-class Log {
+class SELog {
 public:
-    Log();
-    virtual ~Log();
+    SELog();
+    virtual ~SELog();
     ostringstream &Get(SELogLevel level = LOG_INFO);
     static SELogLevel &ReportingLevel();
     static string ToString(SELogLevel level);
@@ -45,21 +50,21 @@ protected:
     ostringstream os;
     SELogLevel messageLevel;
 private:
-    Log(const Log &);
-    Log &operator =(const Log &);
+    SELog(const SELog &);
+    SELog &operator =(const SELog &);
 };
 
-inline Log::Log() {
+inline SELog::SELog() {
     messageLevel = (SELogLevel)-1;
 }
 
-inline void Log::Run(SELogLevel level, function<void()> &block) {
+inline void SELog::Run(SELogLevel level, function<void()> &block) {
     if (level <= ReportingLevel()) {
         block();
     }
 }
 
-inline ostringstream &Log::Get(SELogLevel level) {
+inline ostringstream &SELog::Get(SELogLevel level) {
     messageLevel = level;
     os << NowTime();
     os << " " << ToString(level) << ": ";
@@ -67,11 +72,19 @@ inline ostringstream &Log::Get(SELogLevel level) {
     return os;
 }
 
-inline Log::~Log() {
+inline SELog::~SELog() {
     if ((int)messageLevel != -1 && messageLevel <= ReportingLevel()) {
-        os << endl;
-#ifdef ANDROID_NDK
-        LOGD_ANDROID("%s", os.str().c_str());
+        // If we want to default to the line break, uncomment
+        // os << endl;
+#ifdef ANDROID
+        if (messageLevel == LOG_ERROR)
+            LOGE("%s", os.str().c_str());
+        else if (messageLevel == LOG_WARN)
+            LOGW("%s", os.str().c_str());
+        else if (messageLevel == LOG_INFO)
+            LOGI("%s", os.str().c_str());
+        else
+            LOGD("%s", os.str().c_str());
 #else
         fprintf(stderr, "%s", os.str().c_str());
         fflush(stderr);
@@ -79,17 +92,17 @@ inline Log::~Log() {
     }
 }
 
-inline SELogLevel &Log::ReportingLevel() {
+inline SELogLevel &SELog::ReportingLevel() {
     static SELogLevel reportingLevel = LOG_DEBUG;
     return reportingLevel;
 }
 
-inline string Log::ToString(SELogLevel level) {
+inline string SELog::ToString(SELogLevel level) {
     static const char* const buffer[] = {"ERROR", "WARNING", "INFO", "DEBUG"};
     return buffer[level];
 }
 
-inline SELogLevel Log::FromString(const string &level) {
+inline SELogLevel SELog::FromString(const string &level) {
     if (level == "DEBUG")
     { return LOG_DEBUG; }
     
@@ -102,15 +115,15 @@ inline SELogLevel Log::FromString(const string &level) {
     if (level == "ERROR")
     { return LOG_ERROR; }
     
-    Log().Get(LOG_WARN) << "Unknown logging level '" << level << "'. Using INFO level as default.";
+    SELog().Get(LOG_WARN) << "Unknown logging level '" << level << "'. Using INFO level as default.";
     return LOG_INFO;
 }
 
-typedef Log FILELog;
+typedef SELog FILELog;
 
 #define FILE_LOG(level) \
 if (level > FILELog::ReportingLevel()) ; \
-else Log().Get(level)
+else SELog().Get(level)
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
 
